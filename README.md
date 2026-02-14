@@ -136,6 +136,10 @@ Once configured, you can ask your AI agent things like:
 - "Send a message as 'deploy-bot' using the webhook"
 - "Find the user named Alice and mention them in #general"
 
+## Note
+
+This project was built with [Kiro](https://kiro.dev) + Claude Opus 4 (claude-sonnet-4-20250514).
+
 ## License
 
-ISC
+MIT

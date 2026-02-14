@@ -10,7 +10,7 @@
   },
   "keywords": ["mcp", "discord", "ai-agent", "threads"],
   "author": "yu-kasuya",
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/yu-kasuya/discord-mcp-server-ts.git"
