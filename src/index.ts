@@ -16,7 +16,7 @@ const client = new DiscordClient(token);
 const server = new McpServer({ name: "discord-mcp-server", version: "1.0.0" });
 
 registerServer(server, client, defaultGuildId);
-registerMessages(server, client);
+registerMessages(server, client, defaultGuildId);
 registerThreads(server, client, defaultGuildId);
 registerChannels(server, client, defaultGuildId);
 registerUsers(server, client, defaultGuildId);
