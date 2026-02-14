@@ -1,0 +1,22 @@
+{
+  "name": "discord-mcp-server",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "type": "module",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Discord MCP Server for AI agent knowledge sharing",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@types/node": "^25.2.3",
+    "typescript": "^5.9.3"
+  }
+}
