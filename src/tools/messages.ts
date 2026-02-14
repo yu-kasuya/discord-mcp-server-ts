@@ -146,26 +146,30 @@ export function register(server: McpServer, client: DiscordClient, defaultGuildI
       // Get bot's own user ID
       const me = await client.get("/users/@me");
       const botId = me.id;
-      const results: any[] = [];
-
       const scanChannel = async (chId: string) => {
-        const msgs = await client.get(`/channels/${chId}/messages?limit=${n}`);
-        for (const m of msgs) {
-          if (m.mentions?.some((u: any) => u.id === botId)) {
-            results.push({ channel_id: chId, id: m.id, author: m.author.username, content: m.content, timestamp: m.timestamp });
+        try {
+          const msgs = await client.get(`/channels/${chId}/messages?limit=${n}`);
+          const mentions = [];
+          for (const m of msgs) {
+            if (m.mentions?.some((u: any) => u.id === botId)) {
+              mentions.push({ channel_id: chId, id: m.id, author: m.author.username, content: m.content, timestamp: m.timestamp });
+            }
           }
+          return mentions;
+        } catch {
+          return [];
         }
       };
 
-      // Scan specified channel
-      if (channel_id) await scanChannel(channel_id);
-
-      // Scan active threads (filtered by parent if channel_id given)
+      // Scan specified channel + active threads in parallel
       const threads = await client.get(`/guilds/${gid}/threads/active`);
-      for (const t of threads.threads) {
-        if (channel_id && t.parent_id !== channel_id) continue;
-        await scanChannel(t.id);
-      }
+      const channelIds = threads.threads
+        .filter((t: any) => !channel_id || t.parent_id === channel_id)
+        .map((t: any) => t.id);
+      if (channel_id) channelIds.unshift(channel_id);
+
+      const allResults = await Promise.all(channelIds.map(scanChannel));
+      const results = allResults.flat();
 
       return { content: [{ type: "text" as const, text: JSON.stringify(results, null, 2) }] };
     }

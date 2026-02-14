@@ -13,7 +13,7 @@ if (!token) { console.error("DISCORD_TOKEN env is required"); process.exit(1); }
 const defaultGuildId = process.env.DISCORD_GUILD_ID;
 
 const client = new DiscordClient(token);
-const server = new McpServer({ name: "discord-mcp-server", version: "1.0.0" });
+const server = new McpServer({ name: "discord-mcp-server-ts", version: "1.0.0" });
 
 registerServer(server, client, defaultGuildId);
 registerMessages(server, client, defaultGuildId);

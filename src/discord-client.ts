@@ -1,3 +1,12 @@
+export interface DiscordRateLimitResponse {
+  message: string;
+  retry_after: number;
+  global: boolean;
+  code?: number;
+}
+
+const MAX_RETRIES = 3;
+
 export class DiscordClient {
   private token: string;
   private baseUrl = 'https://discord.com/api/v10';
@@ -39,60 +48,59 @@ export class DiscordClient {
       headers.Authorization = `Bot ${this.token}`;
     }
 
-    let response = await fetch(`${this.baseUrl}${path}`, {
+    const opts = {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined
-    });
+    };
 
-    if (response.status === 429) {
-      const retryAfter = parseInt(response.headers.get('Retry-After') || '1');
-      await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-      response = await fetch(`${this.baseUrl}${path}`, {
-        method,
-        headers,
-        body: body ? JSON.stringify(body) : undefined
-      });
-    }
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      const response = await fetch(`${this.baseUrl}${path}`, opts);
 
-    if (response.status === 204) {
-      return null;
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      let message = `Discord API Error ${response.status}`;
-      try {
-        const json = JSON.parse(errorText);
-        message += `: ${json.message || errorText}`;
-        if (json.code) {
-          message += ` (code: ${json.code})`;
-          // Add helpful context for common errors
-          switch (json.code) {
-            case 10003:
-              message += " - Channel not found or bot lacks access";
-              break;
-            case 10008:
-              message += " - Message not found";
-              break;
-            case 50001:
-              message += " - Bot lacks permission for this action";
-              break;
-            case 50013:
-              message += " - Bot lacks required permissions";
-              break;
-            case 50035:
-              message += " - Invalid form body (check parameter format)";
-              break;
-          }
+      if (response.status === 429) {
+        if (attempt === MAX_RETRIES) {
+          throw new Error(`Rate limited after ${MAX_RETRIES} retries: ${method} ${path}`);
         }
-        if (json.errors) message += `\n${JSON.stringify(json.errors, null, 2)}`;
-      } catch {
-        message += `: ${errorText}`;
+        // Discord docs: retry_after is a float (seconds), prefer JSON body over header
+        let retryAfter = 1;
+        try {
+          const rateLimitBody: DiscordRateLimitResponse = await response.json();
+          retryAfter = rateLimitBody.retry_after;
+        } catch {
+          retryAfter = parseFloat(response.headers.get('Retry-After') || '1');
+        }
+        await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+        continue;
       }
-      throw new Error(message);
-    }
 
-    return response.json();
+      if (response.status === 204) {
+        return null;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let message = `Discord API Error ${response.status}`;
+        try {
+          const json = JSON.parse(errorText);
+          message += `: ${json.message || errorText}`;
+          if (json.code) {
+            message += ` (code: ${json.code})`;
+            switch (json.code) {
+              case 10003: message += " - Channel not found or bot lacks access"; break;
+              case 10008: message += " - Message not found"; break;
+              case 50001: message += " - Bot lacks permission for this action"; break;
+              case 50013: message += " - Bot lacks required permissions"; break;
+              case 50035: message += " - Invalid form body (check parameter format)"; break;
+            }
+          }
+          if (json.errors) message += `\n${JSON.stringify(json.errors, null, 2)}`;
+        } catch {
+          message += `: ${errorText}`;
+        }
+        throw new Error(message);
+      }
+
+      return response.json();
+    }
   }
 }
